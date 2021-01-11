@@ -1,4 +1,6 @@
 #include "wled.h"
+#include "DHT.h"
+
 /*
  * This v1 usermod file allows you to add own functionality to WLED more easily
  * See: https://github.com/Aircoookie/WLED/wiki/Add-own-functionality
@@ -11,11 +13,26 @@
 //Use userVar0 and userVar1 (API calls &U0=,&U1=, uint16_t)
 
 // PIR sensor pin
-const int MOTION_PIN = 4;
- // MQTT topic for sensor values
-const char MQTT_TOPIC[] = "/motion";
+const int MOTION_PIN = 4; // D2
+ // PIR MQTT topic
+const char MQTT_TOPIC_PIR[] = "/motion";
 
 int prevState = LOW;
+
+// DHT sensor pin
+const int DHT_PIN = 5; // D1
+#define DHTtype DHT22
+DHT dht(DHT_PIN, DHTtype);
+ // DHT MQTT topic
+const char MQTT_TOPIC_DHT[] = "/dht";
+
+
+const long UPDATE_MS = 30000; // Upper threshold between mqtt messages
+
+// variables
+long lastTime = 0;
+long timeDiff = 0;
+long readTime = 0;
 
 //gets called once at boot. Do all initialization that doesn't depend on network here
 void userSetup()
@@ -29,14 +46,26 @@ void userConnected()
 
 }
 
-void publishMqtt(String state)
+void publishMqttPIR(String state)
+{
+  //Check if MQTT Connected, otherwise it will crash the 8266
+  if (mqtt != nullptr && millis() >= 40000){
+    char subuf[38];
+    strcpy(subuf, mqttDeviceTopic);
+    strcat(subuf, MQTT_TOPIC_PIR);
+    mqtt->publish(subuf, 0, true, state.c_str());
+  }
+}
+
+void publishMqttDHT(Float temp, Float hum)
 {
   //Check if MQTT Connected, otherwise it will crash the 8266
   if (mqtt != nullptr){
     char subuf[38];
     strcpy(subuf, mqttDeviceTopic);
-    strcat(subuf, MQTT_TOPIC);
-    mqtt->publish(subuf, 0, true, state.c_str());
+    strcat(subuf, MQTT_TOPIC_DHT);
+    mqtt->publish(subuf, 0, true, String(temp).c_str());
+    mqtt->publish(subuf, 0, true, String(hum).c_str());
   }
 }
 
@@ -44,12 +73,29 @@ void publishMqtt(String state)
 void userLoop()
 {
   if (digitalRead(MOTION_PIN) == HIGH && prevState == LOW) { // Motion detected
-    publishMqtt("ON");
+    publishMqttPIR("ON");
     prevState = HIGH;
   } 
   if (digitalRead(MOTION_PIN) == LOW && prevState == HIGH) {  // Motion stopped
-    publishMqtt("OFF");
+    publishMqttPIR("OFF");
     prevState = LOW;
+  }
+
+  if (millis() - readTime > 500)
+  {
+    readTime = millis();
+    timeDiff = millis() - lastTime;
+    
+    // Read DHT Sensor Values
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+
+    // Send MQTT message on significant change or after UPDATE_MS
+    if (timeDiff > UPDATE_MS) 
+    {
+      publishMqtt(t, h);
+      lastTime = millis();
+    }
   }
 }
 
