@@ -1,5 +1,4 @@
 #include "wled.h"
-
 /*
  * This v1 usermod file allows you to add own functionality to WLED more easily
  * See: https://github.com/Aircoookie/WLED/wiki/Add-own-functionality
@@ -11,17 +10,23 @@
 
 //Use userVar0 and userVar1 (API calls &U0=,&U1=, uint16_t)
 
-// PIR sensor pin
-const int MOTION_PIN = 4; // D2
- // PIR MQTT topic
-const char MQTT_TOPIC_PIR[] = "/motion";
+const int LIGHT_PIN = A0; // define analog pin
+const long UPDATE_MS = 30000; // Upper threshold between mqtt messages
+const char MQTT_TOPIC[] = "/light"; // MQTT topic for sensor values
+const int CHANGE_THRESHOLD = 5; // Change threshold in percentage to send before UPDATE_MS
 
-int prevState = LOW;
+// variables
+long lastTime = 0;
+long timeDiff = 0;
+long readTime = 0;
+int lightValue = 0; 
+float lightPercentage = 0;
+float lastPercentage = 0;
 
 //gets called once at boot. Do all initialization that doesn't depend on network here
 void userSetup()
 {
-  pinMode(MOTION_PIN, INPUT);
+  pinMode(LIGHT_PIN, INPUT);
 }
 
 //gets called every time WiFi is (re-)connected. Initialize own network interfaces here
@@ -30,27 +35,36 @@ void userConnected()
 
 }
 
-void publishMqttPIR(String state)
+void publishMqtt(float state)
 {
   //Check if MQTT Connected, otherwise it will crash the 8266
-  if (mqtt != nullptr && millis() >= 40000){
+  if (mqtt != nullptr){
     char subuf[38];
     strcpy(subuf, mqttDeviceTopic);
-    strcat(subuf, MQTT_TOPIC_PIR);
-    mqtt->publish(subuf, 0, true, state.c_str());
+    strcat(subuf, MQTT_TOPIC);
+    mqtt->publish(subuf, 0, true, String(state).c_str());
   }
 }
 
 //loop. You can use "if (WLED_CONNECTED)" to check for successful connection
 void userLoop()
 {
-  if (digitalRead(MOTION_PIN) == HIGH && prevState == LOW) { // Motion detected
-    publishMqttPIR("ON");
-    prevState = HIGH;
-  } 
-  if (digitalRead(MOTION_PIN) == LOW && prevState == HIGH) {  // Motion stopped
-    publishMqttPIR("OFF");
-    prevState = LOW;
+   // Read only every 500ms, otherwise it causes the board to hang
+  if (millis() - readTime > 500)
+  {
+    readTime = millis();
+    timeDiff = millis() - lastTime;
+    
+    // Convert value to percentage
+    lightValue = analogRead(LIGHT_PIN);
+    lightPercentage = ((float)lightValue * -1 + 1024)/(float)1024 *100;
+    
+    // Send MQTT message on significant change or after UPDATE_MS
+    if (abs(lightPercentage - lastPercentage) > CHANGE_THRESHOLD || timeDiff > UPDATE_MS) 
+    {
+      publishMqtt(lightPercentage);
+      lastTime = millis();
+      lastPercentage = lightPercentage;
+    }
   }
 }
-
