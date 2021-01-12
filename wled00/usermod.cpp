@@ -1,4 +1,5 @@
 #include "wled.h"
+
 #include "DHT.h"
 
 /*
@@ -24,10 +25,11 @@ const int DHT_PIN = 5; // D1
 #define DHTtype DHT22
 DHT dht(DHT_PIN, DHTtype);
  // DHT MQTT topic
-const char MQTT_TOPIC_DHT[] = "/dht";
+const char MQTT_TOPIC_TEMP[] = "/temp";
+const char MQTT_TOPIC_HUM[] = "/hum";
 
 
-const long UPDATE_MS = 30000; // Upper threshold between mqtt messages
+const long UPDATE_MS = 60000; // Upper threshold between mqtt messages
 
 // variables
 long lastTime = 0;
@@ -38,6 +40,7 @@ long readTime = 0;
 void userSetup()
 {
   pinMode(MOTION_PIN, INPUT);
+  dht.begin();
 }
 
 //gets called every time WiFi is (re-)connected. Initialize own network interfaces here
@@ -57,15 +60,25 @@ void publishMqttPIR(String state)
   }
 }
 
-void publishMqttDHT(Float temp, Float hum)
+void publishMqttHUM(float state)
 {
   //Check if MQTT Connected, otherwise it will crash the 8266
   if (mqtt != nullptr){
     char subuf[38];
     strcpy(subuf, mqttDeviceTopic);
-    strcat(subuf, MQTT_TOPIC_DHT);
-    mqtt->publish(subuf, 0, true, String(temp).c_str());
-    mqtt->publish(subuf, 0, true, String(hum).c_str());
+    strcat(subuf, MQTT_TOPIC_HUM);
+    mqtt->publish(subuf, 0, true, String(state,2).c_str());
+  }
+}
+
+void publishMqttTEMP(float state)
+{
+  //Check if MQTT Connected, otherwise it will crash the 8266
+  if (mqtt != nullptr){
+    char subuf[38];
+    strcpy(subuf, mqttDeviceTopic);
+    strcat(subuf, MQTT_TOPIC_TEMP);
+    mqtt->publish(subuf, 0, true, String(state,2).c_str());
   }
 }
 
@@ -87,13 +100,14 @@ void userLoop()
     timeDiff = millis() - lastTime;
     
     // Read DHT Sensor Values
-    float h = dht.readHumidity();
-    float t = dht.readTemperature();
+    float hum = dht.readHumidity();
+    float temp = dht.readTemperature();
 
     // Send MQTT message on significant change or after UPDATE_MS
     if (timeDiff > UPDATE_MS) 
     {
-      publishMqtt(t, h);
+      publishMqttHUM(hum);
+      publishMqttTEMP(temp);
       lastTime = millis();
     }
   }
