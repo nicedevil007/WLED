@@ -12,7 +12,7 @@
 
 const int LIGHT_PIN = A0; // define analog pin
 const long UPDATE_MS = 30000; // Upper threshold between mqtt messages
-const char MQTT_TOPIC[] = "/light"; // MQTT topic for sensor values
+const char MQTT_TOPIC[] = "/sensor/light"; // MQTT topic for sensor values
 const int CHANGE_THRESHOLD = 5; // Change threshold in percentage to send before UPDATE_MS
 
 // variables
