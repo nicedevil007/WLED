@@ -1,20 +1,11 @@
 #include "wled.h"
 
-/*
- * This v1 usermod file allows you to add own functionality to WLED more easily
- * See: https://github.com/Aircoookie/WLED/wiki/Add-own-functionality
- * EEPROM bytes 2750+ are reserved for your custom use case. (if you extend #define EEPSIZE in const.h)
- * If you just need 8 bytes, use 2551-2559 (you do not need to increase EEPSIZE)
- * 
- * Consider the v2 usermod API if you need a more advanced feature set!
- */
-
 //Use userVar0 and userVar1 (API calls &U0=,&U1=, uint16_t)
 
 // PIR sensor pin
 const int MOTION_PIN = 4; // D2
  // PIR MQTT topic
-const char MQTT_TOPIC_PIR[] = "/sensor/motion";
+const char MQTT_TOPIC_PIR[] = "/s/pir";
 
 int prevState = LOW;
 
@@ -33,7 +24,7 @@ void userConnected()
 void publishMqttPIR(String state)
 {
   //Check if MQTT Connected, otherwise it will crash the 8266
-  if (mqtt != nullptr && millis() >= 40000){
+  if (mqtt != nullptr && millis() >= 60000){
     char subuf[38];
     strcpy(subuf, mqttDeviceTopic);
     strcat(subuf, MQTT_TOPIC_PIR);
@@ -45,11 +36,11 @@ void publishMqttPIR(String state)
 void userLoop()
 {
   if (digitalRead(MOTION_PIN) == HIGH && prevState == LOW) { // Motion detected
-    publishMqttPIR("ON");
+    publishMqttPIR("true");
     prevState = HIGH;
   } 
   if (digitalRead(MOTION_PIN) == LOW && prevState == HIGH) {  // Motion stopped
-    publishMqttPIR("OFF");
+    publishMqttPIR("false");
     prevState = LOW;
   }
 }
