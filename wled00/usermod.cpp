@@ -16,7 +16,7 @@
 // PIR sensor pin
 const int MOTION_PIN = 4; // D2
  // PIR MQTT topic
-const char MQTT_TOPIC_PIR[] = "/motion";
+const char MQTT_TOPIC_PIR[] = "/sensor/motion";
 
 int prevState = LOW;
 
@@ -25,8 +25,8 @@ const int DHT_PIN = 5; // D1
 #define DHTtype DHT22
 DHT dht(DHT_PIN, DHTtype);
  // DHT MQTT topic
-const char MQTT_TOPIC_TEMP[] = "/temp";
-const char MQTT_TOPIC_HUM[] = "/hum";
+const char MQTT_TOPIC_TEMP[] = "/sensor/temp";
+const char MQTT_TOPIC_HUM[] = "/sensor/hum";
 
 
 const long UPDATE_MS = 60000; // Upper threshold between mqtt messages
