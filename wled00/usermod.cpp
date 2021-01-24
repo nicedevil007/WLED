@@ -14,7 +14,7 @@
 // PIR sensor pin
 const int MOTION_PIN = 4; // D2
  // PIR MQTT topic
-const char MQTT_TOPIC_PIR[] = "/motion";
+const char MQTT_TOPIC_PIR[] = "/sensor/motion";
 
 int prevState = LOW;
 
