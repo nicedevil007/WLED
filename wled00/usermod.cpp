@@ -25,8 +25,8 @@ const int DHT_PIN = 5; // D1
 #define DHTtype DHT22
 DHT dht(DHT_PIN, DHTtype);
  // DHT MQTT topic
-const char MQTT_TOPIC_TEMP[] = "/sensor/temp";
-const char MQTT_TOPIC_HUM[] = "/sensor/hum";
+const char MQTT_TOPIC_T[] = "/sensor/temp";
+const char MQTT_TOPIC_H[] = "/sensor/hum";
 
 
 const long UPDATE_MS = 60000; // Upper threshold between mqtt messages
@@ -66,7 +66,7 @@ void publishMqttHUM(float state)
   if (mqtt != nullptr){
     char subuf[38];
     strcpy(subuf, mqttDeviceTopic);
-    strcat(subuf, MQTT_TOPIC_HUM);
+    strcat(subuf, MQTT_TOPIC_H);
     mqtt->publish(subuf, 0, true, String(state,2).c_str());
   }
 }
@@ -77,7 +77,7 @@ void publishMqttTEMP(float state)
   if (mqtt != nullptr){
     char subuf[38];
     strcpy(subuf, mqttDeviceTopic);
-    strcat(subuf, MQTT_TOPIC_TEMP);
+    strcat(subuf, MQTT_TOPIC_T);
     mqtt->publish(subuf, 0, true, String(state,2).c_str());
   }
 }
