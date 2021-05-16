@@ -44,4 +44,3 @@ void userLoop()
     prevState = LOW;
   }
 }
-
